@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
-using Microsoft.Win32;
+using System.Windows.Controls;
 using System.Windows.Threading;
+using Microsoft.Win32;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
@@ -12,45 +12,70 @@ namespace CustomVideoPlayer
 {
     public partial class MainWindow : Window
     {
-        private bool isPaused = false;
-        private DispatcherTimer recordingCheckTimer;
+        private bool _isPaused = false;
+        private DispatcherTimer _recordingCheckTimer;
+        private DispatcherTimer _timelineUpdateTimer;
+        private bool _isRecordingDetected = false;
 
         public MainWindow()
         {
             InitializeComponent();
             InitializeRecordingCheck();
+            InitializeTimelineUpdate();
         }
 
         private void InitializeRecordingCheck()
         {
-            recordingCheckTimer = new DispatcherTimer();
-            recordingCheckTimer.Interval = TimeSpan.FromSeconds(10); // Check every 10 seconds
-            recordingCheckTimer.Tick += RecordingCheckTimer_Tick;
-            recordingCheckTimer.Start();
+            _recordingCheckTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(5)
+            };
+            _recordingCheckTimer.Tick += RecordingCheckTimerTick;
+            _recordingCheckTimer.Start();
         }
 
-        private void RecordingCheckTimer_Tick(object sender, EventArgs e)
+        private void InitializeTimelineUpdate()
         {
-            DetectAndStopRecording();
+            _timelineUpdateTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _timelineUpdateTimer.Tick += TimelineUpdateTimerTick;
+            _timelineUpdateTimer.Start();
         }
 
-        private void btnPlay_Click(object sender, RoutedEventArgs e)
+        private void RecordingCheckTimerTick(object sender, EventArgs e)
+        {
+            DetectRecording();
+        }
+
+        private void TimelineUpdateTimerTick(object sender, EventArgs e)
+        {
+            if (mediaElement.NaturalDuration.HasTimeSpan)
+            {
+                timelineSlider.Maximum = mediaElement.NaturalDuration.TimeSpan.TotalSeconds;
+                timelineSlider.Value = mediaElement.Position.TotalSeconds;
+            }
+        }
+
+        private void BtnPlay_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if (openFileDialog.ShowDialog() == true)
             {
                 mediaElement.Source = new Uri(openFileDialog.FileName);
                 mediaElement.Play();
-                isPaused = false;
+                _isPaused = false;
                 btnPause.Content = "Pause";
+                _isRecordingDetected = false;
             }
         }
 
-        private void btnPause_Click(object sender, RoutedEventArgs e)
+        private void BtnPause_Click(object sender, RoutedEventArgs e)
         {
             if (mediaElement.Source != null)
             {
-                if (isPaused)
+                if (_isPaused)
                 {
                     mediaElement.Play();
                     btnPause.Content = "Pause";
@@ -60,22 +85,23 @@ namespace CustomVideoPlayer
                     mediaElement.Pause();
                     btnPause.Content = "Play";
                 }
-                isPaused = !isPaused;
+                _isPaused = !_isPaused;
             }
         }
 
-        private void btnStop_Click(object sender, RoutedEventArgs e)
+        private void BtnStop_Click(object sender, RoutedEventArgs e)
         {
             if (mediaElement.Source != null)
             {
                 mediaElement.Stop();
                 mediaElement.Source = null;
-                isPaused = false;
+                _isPaused = false;
                 btnPause.Content = "Pause";
+                _isRecordingDetected = false;
             }
         }
 
-        private async void btnPlayOnline_Click(object sender, RoutedEventArgs e)
+        private async void BtnPlayOnline_Click(object sender, RoutedEventArgs e)
         {
             string videoUrl = urlTextBox.Text;
             if (!string.IsNullOrEmpty(videoUrl))
@@ -111,8 +137,9 @@ namespace CustomVideoPlayer
 
                         mediaElement.Source = new Uri(streamInfo.Url);
                         mediaElement.Play();
-                        isPaused = false;
+                        _isPaused = false;
                         btnPause.Content = "Pause";
+                        _isRecordingDetected = false;
                     }
                     catch (Exception ex)
                     {
@@ -125,8 +152,9 @@ namespace CustomVideoPlayer
                     {
                         mediaElement.Source = new Uri(videoUrl);
                         mediaElement.Play();
-                        isPaused = false;
+                        _isPaused = false;
                         btnPause.Content = "Pause";
+                        _isRecordingDetected = false;
                     }
                     catch (Exception ex)
                     {
@@ -140,9 +168,9 @@ namespace CustomVideoPlayer
             }
         }
 
-        private void DetectAndStopRecording()
+        private void DetectRecording()
         {
-            string[] recordingProcesses = { "obs", "otherRecordingSoftware" }; 
+            string[] recordingProcesses = { "obs", "camtasia", "bandicam", "fraps", "xsplit", "snagit" };
             foreach (var processName in recordingProcesses)
             {
                 var processes = Process.GetProcessesByName(processName);
@@ -152,8 +180,12 @@ namespace CustomVideoPlayer
                     {
                         try
                         {
-                            process.Kill();
-                            MessageBox.Show($"Detected and stopped recording process: {processName}");
+                            if (!_isRecordingDetected)
+                            {
+                                MessageBox.Show($"Detected recording process: {processName}. Video will be blacked out.");
+                                _isRecordingDetected = true;
+                            }
+                            mediaElement.Visibility = Visibility.Hidden;
                         }
                         catch (Exception ex)
                         {
@@ -161,6 +193,19 @@ namespace CustomVideoPlayer
                         }
                     }
                 }
+                else if (_isRecordingDetected)
+                {
+                    mediaElement.Visibility = Visibility.Visible;
+                    _isRecordingDetected = false;
+                }
+            }
+        }
+
+        private void TimelineSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (mediaElement.NaturalDuration.HasTimeSpan)
+            {
+                mediaElement.Position = TimeSpan.FromSeconds(timelineSlider.Value);
             }
         }
     }
