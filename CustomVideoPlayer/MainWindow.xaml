@@ -1,16 +1,18 @@
 ﻿<Window x:Class="CustomVideoPlayer.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:CustomVideoPlayer"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Custom Video Player" Height="450" Width="800" Background="#2c3e50">
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="63*"/>
-            <ColumnDefinition Width="334*"/>
-        </Grid.ColumnDefinitions>
-
+        <MediaElement Name="mediaElement" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                      LoadedBehavior="Manual" UnloadedBehavior="Manual" Margin="0,50,0,0"/>
+        <DockPanel VerticalAlignment="Top" Background="#34495e" Height="50">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <Button Name="btnPlay" Content="Play" Click="btnPlay_Click" Margin="5" Width="75" Height="30" Background="#1abc9c" Foreground="White"/>
+                <Button Name="btnPause" Content="Pause" Click="btnPause_Click" Margin="5" Width="75" Height="30" Background="#3498db" Foreground="White"/>
+                <Button Name="btnStop" Content="Stop" Click="btnStop_Click" Margin="5" Width="75" Height="30" Background="#e74c3c" Foreground="White"/>
+                <TextBox Name="urlTextBox" Width="200" Height="30" Margin="5" VerticalAlignment="Center"/>
+                <Button Name="btnPlayOnline" Content="Play Online" Click="btnPlayOnline_Click" Margin="5" Width="100" Height="30" Background="#9b59b6" Foreground="White"/>
+            </StackPanel>
+        </DockPanel>
     </Grid>
 </Window>
