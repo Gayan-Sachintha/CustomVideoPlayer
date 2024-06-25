@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using YoutubeExplode;
@@ -208,5 +210,15 @@ namespace CustomVideoPlayer
                 mediaElement.Position = TimeSpan.FromSeconds(timelineSlider.Value);
             }
         }
+
+        #region Windows API Declarations
+
+        const int WDA_NONE = 0;
+        const int WDA_MONITOR = 1;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);
+
+        #endregion
     }
 }
